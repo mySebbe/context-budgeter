@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "context-budgeter"
+version = "0.1.0"
+description = "Rank repository files against a task query and token budget."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Context Budgeter contributors"}]
+keywords = ["context", "tokens", "cli", "repository"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+]
+
+[project.scripts]
+context-budgeter = "context_budgeter.budgeter:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["context_budgeter*"]
+
+[project.urls]
+Homepage = "https://github.com/mySebbe/context-budgeter"
+Repository = "https://github.com/mySebbe/context-budgeter"
+Issues = "https://github.com/mySebbe/context-budgeter/issues"
+Changelog = "https://github.com/mySebbe/context-budgeter/blob/main/CHANGELOG.md"
+
+[tool.setuptools.package-data]
+"context_budgeter" = ["py.typed"]

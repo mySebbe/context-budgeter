@@ -1,0 +1,1 @@
+fix README test instructions and package metadata
