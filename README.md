@@ -4,6 +4,11 @@
 
 The token estimate is intentionally cheap and deterministic: roughly one token per four characters.
 
+## 0.1.1 Highlights
+
+- Repository scans now respect root `.gitignore` patterns before estimating token budgets.
+- Ignored local files, generated reports, and scratch globs stay out of context reports by default.
+
 ## Usage
 
 ```bash
