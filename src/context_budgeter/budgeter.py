@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import math
 import re
 from dataclasses import dataclass, replace
@@ -68,6 +69,36 @@ def _is_ignored(path: Path, root: Path, ignore_names: set[str]) -> bool:
     return any(part in ignore_names or part.endswith(".egg-info") for part in relative.parts)
 
 
+def _load_gitignore_patterns(root: Path) -> list[str]:
+    gitignore = root / ".gitignore"
+    if not gitignore.is_file():
+        return []
+    patterns: list[str] = []
+    for line in gitignore.read_text(encoding="utf-8", errors="ignore").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or stripped.startswith("!"):
+            continue
+        patterns.append(stripped.lstrip("/"))
+    return patterns
+
+
+def _matches_gitignore(relative_path: str, patterns: list[str]) -> bool:
+    parts = relative_path.split("/")
+    for pattern in patterns:
+        if not pattern:
+            continue
+        directory_only = pattern.endswith("/")
+        normalized = pattern.rstrip("/")
+        if directory_only and (relative_path == normalized or relative_path.startswith(normalized + "/")):
+            return True
+        if "/" in normalized:
+            if fnmatch.fnmatch(relative_path, normalized) or relative_path.startswith(normalized + "/"):
+                return True
+        elif any(fnmatch.fnmatch(part, normalized) for part in parts):
+            return True
+    return False
+
+
 def _estimate_tokens(text: str) -> int:
     return max(1, math.ceil(len(text) / 4))
 
@@ -75,9 +106,13 @@ def _estimate_tokens(text: str) -> int:
 def scan_repository(path: str | Path, extra_ignores: list[str] | None = None) -> list[FileContext]:
     root = Path(path).resolve()
     ignore_names = DEFAULT_IGNORES | set(extra_ignores or [])
+    gitignore_patterns = _load_gitignore_patterns(root)
     files: list[FileContext] = []
     for item in sorted(root.rglob("*")):
         if not item.is_file() or _is_ignored(item, root, ignore_names):
+            continue
+        relative = item.relative_to(root).as_posix()
+        if _matches_gitignore(relative, gitignore_patterns):
             continue
         if item.suffix.lower() in BINARY_SUFFIXES:
             continue
@@ -85,7 +120,6 @@ def scan_repository(path: str | Path, extra_ignores: list[str] | None = None) ->
             text = item.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        relative = item.relative_to(root).as_posix()
         files.append(
             FileContext(
                 path=item,
