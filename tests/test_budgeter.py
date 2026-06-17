@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import tempfile
@@ -27,6 +28,20 @@ class ContextBudgeterTest(unittest.TestCase):
         paths = {item.relative_path for item in files}
         self.assertEqual(paths, {"src/auth.py"})
         self.assertGreater(files[0].estimated_tokens, 0)
+
+    def test_scan_repository_respects_root_gitignore_patterns(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / ".gitignore").write_text("local.env\nreports/\n*.tmp\n", encoding="utf-8")
+            (repo / "app.py").write_text("print('ok')\n", encoding="utf-8")
+            (repo / "local.env").write_text("TOKEN=example\n", encoding="utf-8")
+            (repo / "notes.tmp").write_text("scratch\n", encoding="utf-8")
+            (repo / "reports").mkdir()
+            (repo / "reports" / "large.md").write_text("generated\n", encoding="utf-8")
+
+            files = scan_repository(repo)
+
+        self.assertEqual({item.relative_path for item in files}, {".gitignore", "app.py"})
 
     def test_rank_files_prioritizes_query_terms_in_path_and_content(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -67,6 +82,8 @@ class ContextBudgeterTest(unittest.TestCase):
             repo.mkdir()
             (repo / "README.md").write_text("oauth login docs\n", encoding="utf-8")
             output = Path(tmp) / "report.md"
+            env = os.environ.copy()
+            env["PYTHONPATH"] = str(Path(__file__).resolve().parents[1] / "src")
 
             result = subprocess.run(
                 [
@@ -85,6 +102,7 @@ class ContextBudgeterTest(unittest.TestCase):
                 check=True,
                 text=True,
                 capture_output=True,
+                env=env,
             )
 
             self.assertIn(str(output), result.stdout)
