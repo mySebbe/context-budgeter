@@ -4,17 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "context-budgeter"
-version = "0.1.1"
+version = "0.1.2"
 description = "Rank repository files against a task query and token budget."
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
 authors = [{name = "Context Budgeter contributors"}]
 keywords = ["context", "tokens", "cli", "repository"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
 ]

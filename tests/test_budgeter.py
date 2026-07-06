@@ -55,6 +55,16 @@ class ContextBudgeterTest(unittest.TestCase):
         self.assertEqual(ranked[0].relative_path, "auth_service.py")
         self.assertGreater(ranked[0].rank_score, ranked[1].rank_score)
 
+    def test_scan_repository_skips_files_over_byte_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp)
+            (repo / "small.py").write_text("print('small')\n", encoding="utf-8")
+            (repo / "large.log").write_text("x" * 101, encoding="utf-8")
+
+            files = scan_repository(repo, max_file_bytes=100)
+
+        self.assertEqual({item.relative_path for item in files}, {"small.py"})
+
     def test_build_report_respects_budget_and_recommends_ignores(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp)
@@ -95,6 +105,8 @@ class ContextBudgeterTest(unittest.TestCase):
                     "oauth login",
                     "--budget",
                     "100",
+                    "--max-file-bytes",
+                    "1000",
                     "--output",
                     str(output),
                     "--recommend-ignore",

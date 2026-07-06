@@ -103,10 +103,15 @@ def _estimate_tokens(text: str) -> int:
     return max(1, math.ceil(len(text) / 4))
 
 
-def scan_repository(path: str | Path, extra_ignores: list[str] | None = None) -> list[FileContext]:
+def scan_repository(
+    path: str | Path,
+    extra_ignores: list[str] | None = None,
+    max_file_bytes: int = 1_000_000,
+) -> list[FileContext]:
     root = Path(path).resolve()
     ignore_names = DEFAULT_IGNORES | set(extra_ignores or [])
     gitignore_patterns = _load_gitignore_patterns(root)
+    byte_limit = max(0, max_file_bytes)
     files: list[FileContext] = []
     for item in sorted(root.rglob("*")):
         if not item.is_file() or _is_ignored(item, root, ignore_names):
@@ -115,6 +120,9 @@ def scan_repository(path: str | Path, extra_ignores: list[str] | None = None) ->
         if _matches_gitignore(relative, gitignore_patterns):
             continue
         if item.suffix.lower() in BINARY_SUFFIXES:
+            continue
+        size = item.stat().st_size
+        if size > byte_limit:
             continue
         try:
             text = item.read_text(encoding="utf-8")
@@ -125,7 +133,7 @@ def scan_repository(path: str | Path, extra_ignores: list[str] | None = None) ->
                 path=item,
                 relative_path=relative,
                 estimated_tokens=_estimate_tokens(text),
-                bytes=item.stat().st_size,
+                bytes=size,
             )
         )
     return files
@@ -217,11 +225,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--budget", type=int, default=8000, help="Estimated token budget.")
     parser.add_argument("--output", help="Write the Markdown report to this path.")
     parser.add_argument("--ignore", action="append", default=[], help="Additional directory or file name to ignore.")
+    parser.add_argument(
+        "--max-file-bytes",
+        type=int,
+        default=1_000_000,
+        help="Skip individual text files larger than this many bytes.",
+    )
     parser.add_argument("--recommend-ignore", action="store_true", help="Include ignore recommendations.")
     args = parser.parse_args(argv)
 
     root = Path(args.path).resolve()
-    files = scan_repository(root, args.ignore)
+    files = scan_repository(root, args.ignore, args.max_file_bytes)
     ranked = rank_files(files, args.query)
     report = build_report(root, ranked, args.query, args.budget, args.recommend_ignore)
     if args.output:
