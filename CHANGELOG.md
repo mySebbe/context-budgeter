@@ -6,7 +6,12 @@ The format is based on Keep a Changelog, and this project uses semantic versioni
 
 ## [Unreleased]
 
-- No unreleased changes yet.
+- Made selection repository-aware with `git ls-files --cached --others --exclude-standard` inside Git worktrees.
+- Added a documented filesystem fallback when Git is unavailable, the path is not a worktree, or Git enumeration fails.
+- Rejected symlinks, Windows reparse points, and paths resolving outside the requested root.
+- Added deterministic binary-file detection and exclusion counts with reasons.
+- Added JSON reports and exposed scan metadata in text reports.
+- Added security-focused tests and `docs/SECURITY_REVIEW_2026-07.md`.
 
 ## [0.1.2] - 2026-07-06
 
